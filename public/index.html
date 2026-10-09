@@ -125,7 +125,7 @@
 
       <section class="panel" aria-labelledby="registrations-title">
         <div class="panel-head"><div><h2 id="registrations-title">Attendee registrations</h2><p class="panel-subtitle">Live records from the seminar submission form</p></div><div class="tools"><label class="search"><i data-lucide="search" class="icon"></i><input id="searchInput" type="search" placeholder="Search name or phone" aria-label="Search registrations"></label><button class="action-button" id="exportButton" type="button"><i data-lucide="download" class="icon"></i><span>Export CSV</span></button></div></div>
-        <div class="table-wrap"><table><thead><tr><th scope="col">ID</th><th scope="col">Full name</th><th scope="col">Phone number</th><th scope="col">Registered</th></tr></thead><tbody id="registrationRows"></tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th scope="col">ID</th><th scope="col">Full name</th><th scope="col">Phone number</th><th scope="col">Email</th><th scope="col">Registered</th></tr></thead><tbody id="registrationRows"></tbody></table></div>
         <div class="empty" id="emptyState"><i data-lucide="clipboard-list" class="icon"></i><strong id="emptyTitle">No registrations yet</strong><p id="emptyMessage">New submissions will appear here automatically.</p></div>
       </section>
     </main>
@@ -178,7 +178,7 @@
     function render() {
       const rows = state.filteredRows;
       elements.rows.innerHTML = rows.map(function (row) {
-        return `<tr><td class="id">#${escapeHtml(row.id)}</td><td class="name">${escapeHtml(row.Full_Name || "Not provided")}</td><td class="phone">${escapeHtml(row.Phone_Number || "Not provided")}</td><td class="date">${escapeHtml(formatDate(row.created_at, false))}</td></tr>`;
+        return `<tr><td class="id">#${escapeHtml(row.id)}</td><td class="name">${escapeHtml(row.Full_Name || "Not provided")}</td><td class="phone">${escapeHtml(row.Phone_Number || "Not provided")}</td><td class="email">${escapeHtml(row.email || "Not provided")}</td><td class="date">${escapeHtml(formatDate(row.created_at, false))}</td></tr>`;
       }).join("");
       elements.empty.style.display = rows.length ? "none" : "block";
       if (!rows.length && state.rows.length) {
@@ -201,7 +201,7 @@
     async function loadRegistrations() {
       elements.refresh.disabled = true;
       elements.refresh.querySelector(".icon").classList.add("spin");
-      const result = await supabaseClient.from("submit").select('id, created_at, "Full_Name", "Phone_Number"').order("created_at", { ascending: false });
+      const result = await supabaseClient.from("submit").select('id, created_at, "Full_Name", "Phone_Number", "email"').order("created_at", { ascending: false });
       elements.refresh.disabled = false;
       elements.refresh.querySelector(".icon").classList.remove("spin");
       if (result.error) {
@@ -218,7 +218,7 @@
 
     function exportCsv() {
       if (!state.filteredRows.length) { showError("There are no registrations to export yet."); return; }
-      const header = ["id", "created_at", "Full_Name", "Phone_Number"];
+      const header = ["id", "created_at", "Full_Name", "Phone_Number", "email"];
       const lines = state.filteredRows.map(function (row) { return header.map(function (key) { return `"${String(row[key] ?? "").replace(/"/g, '""')}"`; }).join(","); });
       const blob = new Blob([[header.join(","), ...lines].join("\n")], { type: "text/csv;charset=utf-8" });
       const link = document.createElement("a");
@@ -230,7 +230,7 @@
 
     document.getElementById("searchInput").addEventListener("input", function (event) {
       const query = event.target.value.trim().toLowerCase();
-      state.filteredRows = state.rows.filter(function (row) { return [row.Full_Name, row.Phone_Number].some(function (value) { return String(value || "").toLowerCase().includes(query); }); });
+      state.filteredRows = state.rows.filter(function (row) { return [row.Full_Name, row.Phone_Number, row.email].some(function (value) { return String(value || "").toLowerCase().includes(query); }); });
       render();
     });
     document.getElementById("refreshButton").addEventListener("click", loadRegistrations);
